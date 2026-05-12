@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     HOME=/home/user \
     PATH=/home/user/.local/bin:/home/user/.npm-global/bin:/home/user/.cargo/bin:/home/user/agent/.venv/bin:$PATH
 
-# 一次性配齐所有系统底层库与工具链
+# --- 前面的系统依赖安装保持不变 ---
 RUN apt-get update && apt-get install -y \
     curl git python3.11 python3-pip build-essential lsof \
     ffmpeg ripgrep imagemagick poppler-utils tesseract-ocr tesseract-ocr-chi-sim jq zip unzip tar gzip \
@@ -24,8 +24,7 @@ RUN mkdir -p /home/user/.npm-global && \
     npm config set prefix '/home/user/.npm-global' && \
     npm install -g npm@latest
 
-# 安装 uv, Agent 核心及 Playwright 浏览器内核
-# (已移除 pip install --no-cache-dir huggingface_hub)
+# 安装 uv, Agent 核心及 Playwright
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     git clone https://github.com/nousresearch/hermes-agent.git /home/user/agent && \
     cd /home/user/agent && \
@@ -37,11 +36,16 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
 # 安装 Web UI
 RUN npm install -g hermes-web-ui@latest
 
-RUN mkdir -p /home/user/.hermes
+# --- 关键改动：创建备份并移动脚本 ---
+USER root
+# 将构建好的程序备份到 /app_archive
+RUN mkdir -p /app_archive && cp -r /home/user/. /app_archive/
+# 将启动脚本复制到系统路径，确保不会被挂载覆盖
+COPY start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
 
-COPY --chown=user:user start.sh /home/user/start.sh
-RUN chmod +x /home/user/start.sh
-
+USER user
 EXPOSE 7860
 
-CMD ["/home/user/start.sh"]
+# 使用系统路径下的脚本启动
+CMD ["/usr/local/bin/start.sh"]
