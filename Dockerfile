@@ -1,5 +1,4 @@
 FROM ubuntu:22.04
-
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
     HOME=/home/user \
@@ -26,8 +25,8 @@ RUN mkdir -p /home/user/.npm-global && \
     npm install -g npm@latest
 
 # 安装 uv, Agent 核心及 Playwright 浏览器内核
-RUN pip install --no-cache-dir huggingface_hub && \
-    curl -LsSf https://astral.sh/uv/install.sh | sh && \
+# (已移除 pip install --no-cache-dir huggingface_hub)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     git clone https://github.com/nousresearch/hermes-agent.git /home/user/agent && \
     cd /home/user/agent && \
     uv venv .venv --python 3.11 && \
@@ -39,8 +38,10 @@ RUN pip install --no-cache-dir huggingface_hub && \
 RUN npm install -g hermes-web-ui@latest
 
 RUN mkdir -p /home/user/.hermes
+
 COPY --chown=user:user start.sh /home/user/start.sh
 RUN chmod +x /home/user/start.sh
 
 EXPOSE 7860
+
 CMD ["/home/user/start.sh"]
